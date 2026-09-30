@@ -107,9 +107,23 @@ https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generat
 
 <img width="1909" height="901" alt="image" src="https://github.com/user-attachments/assets/2fee08eb-c9a8-45c8-9479-034c40f3e64a" />
 
-6. 
+6. HTML to Image
 
-5. Whatsapp
+<img width="1595" height="657" alt="image" src="https://github.com/user-attachments/assets/aac92338-0ceb-4860-831b-51d11201fa4f" />
 
-<img width="1905" height="778" alt="image" src="https://github.com/user-attachments/assets/b4f06a7e-94e1-4945-8226-70ce8f6c80e3" />
+7. Image to Base64
+
+<img width="1598" height="657" alt="image" src="https://github.com/user-attachments/assets/0070ad5b-6628-45d3-a2b4-785125eb213c" />
+
+
+8. Whatsapp
+
+<img width="1594" height="675" alt="image" src="https://github.com/user-attachments/assets/3a13ba4d-07ec-4e52-b0de-64935ee42ce3" />
+
+Complete Workflow:
+
+<img width="1243" height="198" alt="image" src="https://github.com/user-attachments/assets/bd695d7a-08b6-4224-875e-5d61f86bfd65" />
+
+
+
 
