@@ -8,3 +8,8 @@
 
 
 
+PDF Used
+
+1. https://www.bseindia.com/xml-data/corpfiling/AttachLive/a43fd068-1f65-4bea-a964-9e381a26f567.pdf
+2. https://archives.nseindia.com/corporate/IntimationforBMFinal_14082023171459.pdf
+3. https://nsearchives.nseindia.com/corporate/ESDS_24092026202831_ESDS_BM_Outcome_BSE_NSE_Intimation.pdf
