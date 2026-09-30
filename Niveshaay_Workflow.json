@@ -1,0 +1,394 @@
+{
+  "name": "Niveshaay Automated Financial Results Processing Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Niveshaay Corporate Result Processing",
+        "formDescription": "Enter Company Name and BSE/NSE Corporate Result PDF Link to process P&L statement.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Company Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Result PDF URL",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -592,
+        -576
+      ],
+      "id": "35010162-62c0-4fd5-88a7-3ae73273fa2d",
+      "name": "n8n Form Trigger",
+      "webhookId": "5146d30b-0bcf-420e-b29e-153ed50268c2"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json[\"Result PDF URL\"].replace('/AttachLive/', '/AttachHis/') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            },
+            {
+              "name": "Referer",
+              "value": "https://www.bseindia.com/"
+            },
+            {
+              "name": "Accept",
+              "value": "application/pdf,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+            },
+            {
+              "name": "Accept-Language",
+              "value": "en-US,en;q=0.9"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -368,
+        -576
+      ],
+      "id": "6f4c6631-ca69-457a-b5e7-6b2987d23525",
+      "name": "Fetch PDF File"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={{$env.GEMINI_API_KEY}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"inlineData\": {\n            \"mimeType\": \"application/pdf\",\n            \"data\": \"{{ $json.pdfBase64 }}\"\n          }\n        },\n        {\n          \"text\": {{ JSON.stringify(`You are a financial data processor that converts quarterly P&L statements into standardized JSON format. You are only to look at the consolidated financial results.\n\nThe table can be under any form including but not limited 'FINANCIAL RESULTS FOR THE QUARTER / YEAR ENDED', 'STATEMENT OF AUDITED/UNAUDITED CONSOLIDATED FINANCIAL RESULTS FOR THE HALF YEAR ENDED AND YEAR ENDED MARCH', 'CONSOLIDATED FINANCIAL RESULTS FOR THE QUARTER', 'Profit and Loss statement', 'PnL', 'Statement of Audited Financial Results for the Half Year & Year ended' and so on.\n\nCritical: Look and process the standalone statement only and only if consolidated statement is not present.\n\nImportant: If you don't find the profit and loss statement in the document just output no pnl found and nothing else.\n\n## 1. DATA EXTRACTION RULES\nCompany Name Extraction\n\n1. **Identify:** Look for legal entity markers (\"Limited\", \"Ltd\", \"Pvt\", \"Inc\").\n2. **Formatting:**\n* Use Title Case for names (e.g., \"Tata Motors\").\n* Keep acronyms ALL CAPS (e.g., \"ITC Limited\", \"H.G. Infra\").\n* If no name is found, output: \"Unknown Company\"\n\n## OUTPUT FORMAT (STRICT)\nReturn ONLY valid JSON with no explanations.\n\n### CRITICAL: Column count depends on the quarter type:\n\n**For Q1 and Q3** - output 4 columns per row (Particulars + 3 data columns):\n{\n  \"company_name\": \"Tata Motors\",\n  \"quarter_type\": \"standard\",\n  \"row1\": [\"Particulars\", \"Q1 FY26\", \"Q4 FY25\", \"Q1 FY25\"],\n  \"row2\": [\"Revenue\", \"3611.02\", \"3347.70\", \"4132.67\"]\n}\n\n**For Q2** - output 6 columns per row (Particulars + 5 data columns, adding H1 of current and previous year):\n{\n  \"company_name\": \"Tata Motors\",\n  \"quarter_type\": \"extended\",\n  \"row1\": [\"Particulars\", \"Q2 FY26\", \"Q1 FY26\", \"Q2 FY25\", \"H1 FY26\", \"H1 FY25\"],\n  \"row2\": [\"Revenue\", \"450.50\", \"425.30\", \"380.20\", \"875.80\", \"740.50\"]\n}\n\n**For Q4** - output 6 columns per row (Particulars + 5 data columns, adding full year current and previous year):\n{\n  \"company_name\": \"Tata Motors\",\n  \"quarter_type\": \"extended\",\n  \"row1\": [\"Particulars\", \"Q4 FY26\", \"Q3 FY26\", \"Q4 FY25\", \"FY26\", \"FY25\"],\n  \"row2\": [\"Revenue\", \"450.50\", \"425.30\", \"380.20\", \"1800.00\", \"1650.00\"]\n}\n\n## TABLE STRUCTURE\n\n### Column Headers\n- Column 1: \"Particulars\"\n- Column 2: Most recent quarter\n- Column 3: Previous consecutive quarter\n- Column 4: Same quarter from previous year\n- Column 5 (Q2/Q4 only): H1 current year (Q2) OR Full Year current (Q4)\n- Column 6 (Q2/Q4 only): H1 previous year (Q2) OR Full Year previous (Q4)\n\n### Quarter Naming Convention\n- 30-Jun-25 -> Q1 FY26\n- 30-Sep-25 -> Q2 FY26\n- 31-Dec-25 -> Q3 FY26\n- 31-Mar-26 -> Q4 FY26\n\n### Row Order (Standard P&L)\n1. Revenue\n2. Expenses (leave values blank - heading only)\n3. [Expense line items - varies by company]\n4. Gross Profit*\n5. Gross Profit Margin*\n6. Employee Benefit Expense\n7. [Other operating expenses - varies]\n8. Other expenses\n9. Total Expenses*\n10. EBITDA*\n11. EBITDA Margin*\n12. Depreciation\n13. Finance Cost\n14. Profit before Exceptional Items, Other Income*\n15. Other Income\n16. [Exceptional items - if present]\n17. [Share of profit/loss in JV/Associate - if present]\n18. Profit/Loss Before Tax*\n19. Tax Expenses\n20. PAT*\n21. PAT Margin*\n22. EPS (Basic)\n\n*Calculated if missing\n\nYou are required to look at the given data and intelligently add or remove fields.\n\nNote:\n1. Service charges/Service Cost are not included in the gross profit calculation.\n2. Revenue is revenue from operations and not total revenue.\n3. If excise duty is present then there will be a net revenue = revenue - excise duty.\n4. Make sure that the values you pick and output are of the correct quarters.\n\n## CALCULATION FORMULAS\n**Gross Profit** = Revenue - COGS-type expenses\n**Gross Profit Margin** = (Gross Profit / Revenue) x 100\n**Total Expenses** = Sum of all expense line items (excluding Depreciation and Finance Cost)\n**EBITDA** = Revenue - Total Operating Expenses (excluding Depreciation, Finance Cost and other income)\n**EBITDA Margin** = (EBITDA / Revenue) x 100\n**Profit before Exceptional Items, Other Income** = EBITDA - Depreciation - Finance Cost\n**Profit Before Tax** = EBITDA - Depreciation - Finance Cost + Other Income +/- Exceptional items +/- Share of profit/loss in JV\n**PAT** = Profit Before Tax - Tax Expenses\n**PAT Margin** = (PAT / Revenue) x 100\n**EPS (Basic)** = Use provided value only; do not calculate\n\nFor Q2 and Q4, apply the same calculation formulas to the H1/FY columns.\n\n## DATA PROCESSING RULES\n- Convert ALL values to Rs Crores\n- Round to 2 decimal places\n- Treat \"-\" or null as 0 (except for EPS)\n- Add \"%\" suffix to all margin calculations\n- All numeric values must be strings in JSON\n- Verify all calculations before final output`) }}\n        }\n      ]\n    }\n  ],\n  \"generationConfig\": {\n    \"responseMimeType\": \"application/json\"\n  }\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        80,
+        -576
+      ],
+      "id": "6450df6e-0071-45b3-8a23-8dcf956cbdff",
+      "name": "AI Financial Extractor",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst responseText = $input.first().json.candidates?.[0]?.content?.parts?.[0]?.text || $input.first().json.text || \"\";\n\nlet parsedJson;\nlet errorFlag = false;\nlet errorMessage = \"\";\n\nif (!responseText || responseText.toLowerCase().includes(\"no pnl found\")) {\n  errorFlag = true;\n  errorMessage = \"No P&L found in the uploaded document.\";\n} else {\n  try {\n    parsedJson = JSON.parse(responseText.replace(/```json|```/g, '').trim());\n    if (parsedJson.error || (typeof parsedJson === 'string' && parsedJson.toLowerCase().includes(\"no pnl found\"))) {\n      errorFlag = true;\n      errorMessage = \"No P&L found in the uploaded document.\";\n    }\n  } catch (e) {\n    errorFlag = true;\n    errorMessage = \"Failed to parse AI JSON response: \" + responseText.slice(0,500);\n  }\n}\n\nif (errorFlag) {\n  return [{ json: { error: true, message: errorMessage, companyName: $('n8n Form Trigger').first().json['Company Name'] || 'Unknown', htmlContent: '' } }];\n}\n\nconst companyName = parsedJson.company_name || $('n8n Form Trigger').first().json['Company Name'] || \"Company Financials\";\nlet quarterType = (parsedJson.quarter_type || '').toLowerCase();\n\n// Collect rows\nconst rows = [];\nObject.keys(parsedJson).forEach(key => {\n  if (key.startsWith('row') && Array.isArray(parsedJson[key])) {\n    rows.push(parsedJson[key]);\n  }\n});\n// Sort rows by numeric suffix to ensure row1, row2 order (object keys might be unordered)\nrows.sort((a,b) => 0); // already inserted in order from Object.keys, but ensure header first is Particulars\n// Actually re-collect in order\nconst orderedRows = [];\nlet i=1;\nwhile (parsedJson[`row${i}`]) {\n  orderedRows.push(parsedJson[`row${i}`]);\n  i++;\n}\nconst finalRows = orderedRows.length ? orderedRows : rows;\n\nif (!finalRows.length) {\n  return [{ json: { error: true, message: \"AI returned empty rows\", companyName, htmlContent: '' } }];\n}\n\nconst oldHeader = finalRows[0];\nconst oldBody = finalRows.slice(1);\n\nfunction parseNum(v) {\n  if (v === null || v === undefined || v === '') return null;\n  let s = String(v).replace(/,/g, '').replace(/%/g, '').replace(/Rs/g, '').trim();\n  if (s === '-' || s === '' ) return null;\n  const n = parseFloat(s);\n  return isNaN(n) ? null : n;\n}\n\nfunction formatChange(currStr, prevStr, isMargin) {\n  if (isMargin) return '';\n  const curr = parseNum(currStr);\n  const prev = parseNum(prevStr);\n  if (curr === null || prev === null || prev === 0) return '';\n  const ch = ((curr - prev) / Math.abs(prev)) * 100;\n  const sign = ch > 0 ? '' : '';\n  return `${ch.toFixed(2)}%`;\n}\n\nfunction isMarginLabel(label) {\n  const l = String(label).toLowerCase();\n  return l.includes('margin');\n}\n\nfunction isCategoryHeader(row) {\n  const label = String(row[0]||'').trim();\n  const rest = row.slice(1);\n  const allEmpty = rest.every(v => v === '' || v === null || v === undefined);\n  const low = label.toLowerCase();\n  return allEmpty || low === 'expenses' || low === 'income' || low === 'expenses (leave values blank - heading only)';\n}\n\n// Determine quarter type if not provided\nlet isExtended = false;\nif (quarterType.includes('extended')) isExtended = true;\nelse if (oldHeader.length === 6) isExtended = true;\nelse if (oldHeader.length === 4) isExtended = false;\nelse isExtended = oldHeader.length > 4;\n\nlet newHeader = [];\nif (isExtended) {\n  // old: Particulars, Q_curr, Q_prev, Q_same, FY_curr, FY_prev (6)\n  newHeader = [\n    oldHeader[0],\n    oldHeader[1],\n    oldHeader[2],\n    'Change (in %)',\n    oldHeader[3],\n    'Change (in %)',\n    oldHeader[4],\n    oldHeader[5],\n    'Change (in %)'\n  ];\n} else {\n  // old: Particulars, Q_curr, Q_prev, Q_same (4)\n  newHeader = [\n    oldHeader[0],\n    oldHeader[1],\n    oldHeader[2],\n    'Change (in %)',\n    oldHeader[3],\n    'Change (in %)'\n  ];\n}\n\nconst highlightKeywords = [\n  \"revenue\", \"gross profit\", \"total expenses\",\n  \"ebitda\", \"profit before tax\", \"profit/loss before tax\",\n  \"pat\", \"profit after tax\"\n];\n\nconst marginKeywords = [\"margin\"];\n\n// Build new body rows with change columns\nconst newBody = oldBody.map(row => {\n  const label = String(row[0]||'').trim();\n  if (isCategoryHeader(row)) {\n    return { type: 'category', label };\n  }\n  const isMargin = isMarginLabel(label);\n  let vals = row.slice(1);\n  let newRow;\n  if (isExtended) {\n    // expect 5 vals\n    while (vals.length < 5) vals.push('');\n    const ch1 = formatChange(vals[0], vals[1], isMargin);\n    const ch2 = formatChange(vals[0], vals[2], isMargin);\n    const ch3 = formatChange(vals[3], vals[4], isMargin);\n    newRow = [label, vals[0], vals[1], ch1, vals[2], ch2, vals[3], vals[4], ch3];\n  } else {\n    while (vals.length < 3) vals.push('');\n    const ch1 = formatChange(vals[0], vals[1], isMargin);\n    const ch2 = formatChange(vals[0], vals[2], isMargin);\n    newRow = [label, vals[0], vals[1], ch1, vals[2], ch2];\n  }\n  return { type: 'data', data: newRow, label };\n});\n\n// Build HTML\nfunction isHighlighted(label) {\n  const low = label.toLowerCase();\n  return highlightKeywords.some(k => low === k || (low.includes(k) && !low.includes('margin'))) && !low.includes('expenses') || low === 'revenue' || low === 'pat';\n}\n\nfunction isRevenue(label) {\n  return label.toLowerCase() === 'revenue';\n}\n\nconst headerHtml = newHeader.map((h, idx) => {\n  const isFirst = idx === 0;\n  const isChange = h.toLowerCase().includes('change');\n  const isCurrentQ = idx === 1;\n  let bg = '#1e3a2e';\n  let color = '#ffffff';\n  let extra = '';\n  if (isFirst) {\n    bg = '#1e3a2e';\n  } else if (isCurrentQ) {\n    bg = '#fde047';\n    color = '#1e293b';\n    extra = 'font-weight:800;';\n  } else if (isChange) {\n    bg = '#e2e8f0';\n    color = '#1e293b';\n  } else {\n    bg = '#1e3a2e';\n  }\n  const align = isFirst ? 'text-align:left;' : 'text-align:right;';\n  return `<th style=\"padding:10px 10px; background-color:${bg}; color:${color}; font-weight:700; border:1px solid #1e293b; ${align} font-size:12px; white-space:nowrap; ${extra}\">${h}</th>`;\n}).join('');\n\nconst bodyHtml = newBody.map(rowObj => {\n  if (rowObj.type === 'category') {\n    return `<tr><td colspan=\"${newHeader.length}\" style=\"padding:8px 12px; background-color:#e2e8f0; font-weight:800; border:1px solid #cbd5e1; color:#1e293b; text-align:left; font-size:12px; text-transform:uppercase;\">${rowObj.label}</td></tr>`;\n  }\n  const label = rowObj.label;\n  const low = label.toLowerCase();\n  const isRev = low === 'revenue';\n  const isMargin = low.includes('margin');\n  const isEbitda = low === 'ebitda' || low === 'ebitda margin';\n  const isPat = low === 'pat' || low === 'pat margin';\n  const isTotalExp = low === 'total expenses';\n  const isPbt = low.includes('profit before tax') || low.includes('profit/loss before tax');\n  const isGross = low === 'gross profit';\n  \n  let rowBg = '#ffffff';\n  let isBoldRow = false;\n  \n  if (isRev) {\n    rowBg = '#14532d';\n  } else if (isGross || isEbitda || isPbt || isPat || isTotalExp) {\n    // keep white but will style cells differently for key metrics\n    if (low === 'gross profit' || low === 'ebitda' || low === 'pat' || low === 'profit before tax' || low.includes('profit/loss before tax') || low === 'total expenses') {\n      isBoldRow = true;\n    }\n  }\n  \n  // zebra\n  const rowIndex = newBody.indexOf(rowObj);\n  if (!isRev && rowBg === '#ffffff') {\n    rowBg = rowIndex % 2 === 0 ? '#ffffff' : '#f0fdf4';\n  }\n\n  const cellsHtml = rowObj.data.map((cell, idx) => {\n    const isFirst = idx === 0;\n    const align = isFirst ? 'text-align:left;' : 'text-align:right;';\n    let cellBg = rowBg;\n    let textColor = '#0f172a';\n    let fontWeight = isFirst ? 'font-weight:600;' : '';\n    \n    if (isRev) {\n      cellBg = '#14532d';\n      textColor = '#ffffff';\n      fontWeight = 'font-weight:800;';\n    } else if (isBoldRow) {\n      if (idx === 0) {\n        textColor = '#0f172a';\n        fontWeight = 'font-weight:700;';\n      } else {\n        // keep bold for key metrics values too\n        if (!isMargin) fontWeight = 'font-weight:700;';\n      }\n    }\n    \n    // Change columns coloring\n    const headerIsChange = newHeader[idx]?.toLowerCase().includes('change');\n    if (headerIsChange && !isFirst && !isMargin) {\n      const num = parseNum(cell);\n      if (num !== null) {\n        if (num > 0) {\n          textColor = num > 15 ? '#15803d' : '#0f172a';\n        } else if (num < 0) {\n          textColor = '#dc2626';\n        }\n      }\n    }\n    \n    // Highlight current quarter column (idx 1)\n    if (idx === 1 && !isFirst) {\n      if (!isRev) cellBg = '#fefce8';\n    }\n    \n    return `<td style=\"padding:8px 10px; border:1px solid #cbd5e1; ${align} background-color:${cellBg}; color:${textColor}; ${fontWeight} font-size:12px; white-space:nowrap;\">${cell ?? '-'}</td>`;\n  }).join('');\n  \n  return `<tr>${cellsHtml}</tr>`;\n}).join('');\n\nconst rawHtml = `<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n<style>\n  * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }\n  body { background:#ffffff; margin:0; padding:20px; width:${isExtended ? '1200' : '850'}px; }\n  .card { border:2px solid #1e3a2e; border-radius:8px; overflow:hidden; background:#ffffff; box-shadow:0 4px 12px rgba(0,0,0,0.08); }\n  .header-banner { background: linear-gradient(90deg, #f0fdf4 0%, #dbeafe 100%); padding:16px 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #1e3a2e; }\n  .company-title { font-size:20px; font-weight:900; color:#1e3a2e; margin:0; text-transform:uppercase; letter-spacing:0.6px; }\n  .brand-logo { font-size:13px; font-weight:800; color:#15803d; letter-spacing:0.5px; }\n  .sub-header { display:flex; justify-content:space-between; padding:6px 14px; background:#f8fafc; border-bottom:1px solid #cbd5e1; font-size:11px; font-weight:700; color:#475569; }\n  table { width:100%; border-collapse:collapse; }\n  .footer { padding:8px 14px; font-size:9px; color:#64748b; text-align:right; background:#f8fafc; border-top:1px solid #cbd5e1; }\n</style>\n</head>\n<body>\n<div class=\"card\">\n  <div class=\"header-banner\">\n    <div style=\"width:140px;\"></div>\n    <h2 class=\"company-title\">${companyName}</h2>\n    <div class=\"brand-logo\">NIVESHAAY</div>\n  </div>\n  <div class=\"sub-header\">\n    <span>Rs in Cr</span>\n    <span>Consolidated Financial Results</span>\n  </div>\n  <table>\n    <thead><tr>${headerHtml}</tr></thead>\n    <tbody>${bodyHtml}</tbody>\n  </table>\n  <div class=\"footer\">Source: BSE/NSE Filings | Processed via Niveshaay Automated Pipeline | Margins in % not comparable for QoQ</div>\n</div>\n</body>\n</html>`;\n\nreturn [{ json: { error: false, companyName, htmlContent: rawHtml, parsedJson, quarterType: isExtended ? 'extended' : 'standard', rowCount: newBody.length } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        -576
+      ],
+      "id": "d7a2ff9b-85a9-40b6-bebf-aac5f14d59c2",
+      "name": "Generate HTML Table"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.cofferdock.com/capture",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "{{$env.X-API-KEY_OR_CREDENTIAL}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\"html\": $json.htmlContent, \"width\": 1200, \"height\": 1600, \"fullPage\": true, \"format\": \"png\", \"waitUntil\": \"networkidle0\"} }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        512,
+        -576
+      ],
+      "id": "691b3239-a381-4475-b35b-0468b529bae3",
+      "name": "Convert HTML to Image"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\n// Read the actual binary file buffer from n8n's filesystem storage\nconst buffer = await this.helpers.getBinaryDataBuffer(0, 'data');\nconst base64Data = buffer.toString('base64');\n\nreturn [\n  {\n    json: {\n      ...item.json,\n      pdfBase64: base64Data\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -144,
+        -576
+      ],
+      "id": "58a9effd-5d27-4473-9f39-9d7fcb62efb1",
+      "name": "PDFtoBase64"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first();\nlet b64 = null;\nif (input.json?.image) {\n  b64 = input.json.image;\n} else if (input.json?.data?.image) {\n  b64 = input.json.data.image;\n} else if (input.json?.result?.image) {\n  b64 = input.json.result.image;\n} else {\n  try {\n    const buf = await this.helpers.getBinaryDataBuffer(0, 'data');\n    b64 = buf.toString('base64');\n  } catch(e) {\n    throw new Error('Cofferdock response has no image field. Full response: ' + JSON.stringify(input.json).slice(0,2000));\n  }\n}\nb64 = b64.replace(/^data:image\\/\\w+;base64,/, '').trim();\nif (b64.length < 1000) {\n  throw new Error('Image base64 too small, likely error: ' + b64.slice(0,500));\n}\nreturn [{\n  json: {\n    companyName: input.json.companyName || $('Generate HTML Table').first().json.companyName || 'Company',\n    imageBase64: b64\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        -576
+      ],
+      "id": "987229ff-08d2-4499-9d05-e1b9ced70b04",
+      "name": "Parse Image Response"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-api-production-3dc7.up.railway.app/message/sendMedia/n8n_whatsapp",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "{{$env.APIKEY_OR_CREDENTIAL}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"918302961064\",\n  \"mediatype\": \"image\",\n  \"mimetype\": \"image/png\",\n  \"fileName\": \"PnL_{{ $json.companyName }}.png\",\n  \"caption\": \"*Financial Results: {{ $json.companyName }}*\\nProcessed via Niveshaay Automated Pipeline.\",\n  \"media\": \"{{ $json.imageBase64 }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        960,
+        -576
+      ],
+      "id": "f8fd430b-9df7-4d0b-aac0-6eee89039535",
+      "name": "Send To Whatsapp"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.error }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        560,
+        -320
+      ],
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Check P&L Found"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://evolution-api-production-3dc7.up.railway.app/message/sendText/n8n_whatsapp",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "{{$env.APIKEY_OR_CREDENTIAL}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"918302961064\",\n  \"text\": \"\u26a0\ufe0f *Niveshaay Pipeline Alert*\\n\\nCompany: {{ $json.companyName }}\\nError: {{ $json.message }}\"\n}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        560,
+        -120
+      ],
+      "id": "b2c3d4e5-f6a7-8901-bcde-f23456789012",
+      "name": "Send Error to Whatsapp"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "n8n Form Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch PDF File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch PDF File": {
+      "main": [
+        [
+          {
+            "node": "PDFtoBase64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDFtoBase64": {
+      "main": [
+        [
+          {
+            "node": "AI Financial Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Financial Extractor": {
+      "main": [
+        [
+          {
+            "node": "Generate HTML Table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate HTML Table": {
+      "main": [
+        [
+          {
+            "node": "Check P&L Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check P&L Found": {
+      "main": [
+        [
+          {
+            "node": "Send Error to Whatsapp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Convert HTML to Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert HTML to Image": {
+      "main": [
+        [
+          {
+            "node": "Parse Image Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Image Response": {
+      "main": [
+        [
+          {
+            "node": "Send To Whatsapp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send To Whatsapp": {
+      "main": [
+        []
+      ]
+    },
+    "Send Error to Whatsapp": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "b7e77b0c-5e48-406d-a5e4-669e56247ac2",
+  "meta": {
+    "instanceId": "8ca6e72983774ade9fd8390eaf87dee118b8e53dab3baf37f5b5a47b9d1d296f"
+  },
+  "nodeGroups": [],
+  "id": "ei8KUa4zXZB94TsP",
+  "tags": []
+}
