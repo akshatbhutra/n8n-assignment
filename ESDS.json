@@ -1,0 +1,106 @@
+"parsedJson": {
+      "company_name": "ESDS Software Solution Limited",
+      "quarter_type": "standard",
+      "row1": [
+        "Particulars",
+        "Q1 FY27",
+        "Q4 FY26",
+        "Q1 FY26"
+      ],
+      "row2": [
+        "Revenue",
+        "133.66",
+        "167.50",
+        "124.59"
+      ],
+      "row3": [
+        "Expenses",
+        "",
+        "",
+        ""
+      ],
+      "row4": [
+        "Employee Benefit Expense",
+        "25.16",
+        "29.05",
+        "23.70"
+      ],
+      "row5": [
+        "Other expenses",
+        "52.50",
+        "35.87",
+        "48.43"
+      ],
+      "row6": [
+        "Total Expenses",
+        "77.66",
+        "64.92",
+        "72.13"
+      ],
+      "row7": [
+        "EBITDA",
+        "56.00",
+        "102.58",
+        "52.46"
+      ],
+      "row8": [
+        "EBITDA Margin",
+        "41.90%",
+        "61.24%",
+        "42.11%"
+      ],
+      "row9": [
+        "Depreciation",
+        "18.48",
+        "17.08",
+        "15.34"
+      ],
+      "row10": [
+        "Finance Cost",
+        "2.57",
+        "2.72",
+        "3.58"
+      ],
+      "row11": [
+        "Profit before Exceptional Items, Other Income",
+        "34.95",
+        "82.78",
+        "33.55"
+      ],
+      "row12": [
+        "Other Income",
+        "1.51",
+        "2.54",
+        "1.13"
+      ],
+      "row13": [
+        "Profit Before Tax",
+        "36.47",
+        "85.32",
+        "34.68"
+      ],
+      "row14": [
+        "Tax Expenses",
+        "7.19",
+        "17.65",
+        "9.00"
+      ],
+      "row15": [
+        "PAT",
+        "29.28",
+        "67.68",
+        "25.69"
+      ],
+      "row16": [
+        "PAT Margin",
+        "21.90%",
+        "40.40%",
+        "20.62%"
+      ],
+      "row17": [
+        "EPS (Basic)",
+        "2.92",
+        "6.71",
+        "2.56"
+      ]
+    }
