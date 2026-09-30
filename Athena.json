@@ -1,0 +1,124 @@
+"parsedJson": {
+      "company_name": "Athena Global Technologies Limited",
+      "quarter_type": "standard",
+      "row1": [
+        "Particulars",
+        "Q1 FY27",
+        "Q4 FY26",
+        "Q1 FY26"
+      ],
+      "row2": [
+        "Revenue",
+        "4.75",
+        "3.40",
+        "3.02"
+      ],
+      "row3": [
+        "Expenses",
+        "",
+        "",
+        ""
+      ],
+      "row4": [
+        "Cost of services rendered",
+        "0.17",
+        "0.24",
+        "0.00"
+      ],
+      "row5": [
+        "Gross Profit",
+        "4.58",
+        "3.16",
+        "3.02"
+      ],
+      "row6": [
+        "Gross Profit Margin",
+        "96.43%",
+        "93.01%",
+        "100.00%"
+      ],
+      "row7": [
+        "Employee Benefit Expense",
+        "1.94",
+        "2.81",
+        "2.73"
+      ],
+      "row8": [
+        "Other expenses",
+        "2.68",
+        "1.53",
+        "1.68"
+      ],
+      "row9": [
+        "Total Expenses",
+        "4.80",
+        "4.57",
+        "4.41"
+      ],
+      "row10": [
+        "EBITDA",
+        "-0.04",
+        "-1.18",
+        "-1.39"
+      ],
+      "row11": [
+        "EBITDA Margin",
+        "-0.93%",
+        "-34.64%",
+        "-46.02%"
+      ],
+      "row12": [
+        "Depreciation",
+        "0.41",
+        "0.41",
+        "0.35"
+      ],
+      "row13": [
+        "Finance Cost",
+        "2.71",
+        "3.97",
+        "2.63"
+      ],
+      "row14": [
+        "Profit before Exceptional Items, Other Income",
+        "-3.16",
+        "-5.56",
+        "-4.37"
+      ],
+      "row15": [
+        "Other Income",
+        "0.03",
+        "0.71",
+        "0.02"
+      ],
+      "row16": [
+        "Profit Before Tax",
+        "-3.13",
+        "-4.84",
+        "-4.35"
+      ],
+      "row17": [
+        "Tax Expenses",
+        "0.02",
+        "-1.09",
+        "-0.01"
+      ],
+      "row18": [
+        "PAT",
+        "-3.15",
+        "-3.75",
+        "-4.34"
+      ],
+      "row19": [
+        "PAT Margin",
+        "-66.36%",
+        "-110.39%",
+        "-143.48%"
+      ],
+      "row20": [
+        "EPS (Basic)",
+        "-2.13",
+        "-2.55",
+        "-3.09"
+      ]
+    }
